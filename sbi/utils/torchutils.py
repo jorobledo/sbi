@@ -301,9 +301,9 @@ class BoxUniform(Independent):
         """
 
         # Type checks.
-        assert isinstance(low, Tensor) and isinstance(high, Tensor), (
-            f"low and high must be tensors but are {type(low)} and {type(high)}."
-        )
+        assert isinstance(low, Tensor) and isinstance(
+            high, Tensor
+        ), f"low and high must be tensors but are {type(low)} and {type(high)}."
         if not low.device == high.device:
             raise RuntimeError(
                 "Expected all tensors to be on the same device, but found at least"
@@ -314,14 +314,14 @@ class BoxUniform(Independent):
         device = low.device.type if device is None else device
         device = process_device(device)
         self.device = device
-        
+
         self.low = torch.as_tensor(
-                    low, dtype=torch.float32, device=torch.device(device)
-                )
+            low, dtype=torch.float32, device=torch.device(device)
+        )
         self.high = torch.as_tensor(
-                    high, dtype=torch.float32, device=torch.device(device)
-                )
-        
+            high, dtype=torch.float32, device=torch.device(device)
+        )
+
         super().__init__(
             Uniform(
                 low=self.low,
@@ -330,14 +330,11 @@ class BoxUniform(Independent):
             ),
             reinterpreted_batch_ndims,
         )
-        
-        
-        
-        
+
     def _to(self, device: str):
         """
         Moves the distribution to the specified device.
-        
+
         Args:
             device (str):  Target device (e.g., "cpu", "cuda", "mps").
         Returns:
@@ -346,16 +343,16 @@ class BoxUniform(Independent):
         device = torch.device(device)
         low = self.base_dist.low.to(device)
         high = self.base_dist.high.to(device)
-        
+
         return BoxUniform(low, high, self.reinterpreted_batch_ndims, device)
-        
+
     def to(self, device: str):
         """
         Moves the distribution to the specified device **in place**.
-        
+
         Args:
             device (str): Target device (e.g., "cpu", "cuda", "mps").
-        
+
         Returns:
             self (BoxUniform): The modified BoxUniform instance.
         """
@@ -372,6 +369,7 @@ class BoxUniform(Independent):
         self.device = device
 
         return self  # Return self to allow method chaining
+
 
 def ensure_theta_batched(theta: Tensor) -> Tensor:
     r"""
