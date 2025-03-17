@@ -77,6 +77,7 @@ class DirectPosterior(NeuralPosterior):
             x_shape=x_shape,
         )
 
+        self.device = device
         self.prior = prior
         self.posterior_estimator = posterior_estimator
 
@@ -85,6 +86,19 @@ class DirectPosterior(NeuralPosterior):
 
         self._purpose = """It samples the posterior network and rejects samples that
             lie outside of the prior bounds."""
+
+    def to(self, device):
+        r"""Move posterior to device,
+        
+        Args:
+            device: device where to move the posterior to.
+        """
+        
+        if hasattr(self.prior, "to"):
+            self.device = device 
+            self.prior.to(device)
+        else:
+            raise ValueError("""Prior has no attribute to(device).""") 
 
     def sample(
         self,
