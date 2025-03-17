@@ -277,7 +277,7 @@ class BoxUniform(Independent):
         low: Tensor,
         high: Tensor,
         reinterpreted_batch_ndims: int = 1,
-        device: Optional[str] = None,
+        device: Optional[Union[str, torch.device]] = None,
     ):
         """Multidimensional uniform distribution defined on a box.
 
@@ -311,15 +311,16 @@ class BoxUniform(Independent):
             )
 
         # Device handling
-        device = low.device.type if device is None else device
-        device = process_device(device)
+        if type(device) == str:
+            device = low.device.type if device is None else device
+            device = process_device(device)
         self.device = device
 
         self.low = torch.as_tensor(
-            low, dtype=torch.float32, device=torch.device(device)
+            low, dtype=torch.float32, device=device
         )
         self.high = torch.as_tensor(
-            high, dtype=torch.float32, device=torch.device(device)
+            high, dtype=torch.float32, device=device
         )
 
         super().__init__(
@@ -331,7 +332,7 @@ class BoxUniform(Independent):
             reinterpreted_batch_ndims,
         )
 
-    def _to(self, device: str):
+    def _to(self, device: Union[str, torch.device]):
         """
         Moves the distribution to the specified device.
 
@@ -340,13 +341,14 @@ class BoxUniform(Independent):
         Returns:
             New BoxUniform instance on selected device
         """
-        device = torch.device(device)
+        if not isinstance(device, torch.device):
+            device = torch.device(device)
         low = self.base_dist.low.to(device)
         high = self.base_dist.high.to(device)
 
         return BoxUniform(low, high, self.reinterpreted_batch_ndims, device)
 
-    def to(self, device: str):
+    def to(self, device: Union[str, torch.device]):
         """
         Moves the distribution to the specified device **in place**.
 
@@ -356,7 +358,8 @@ class BoxUniform(Independent):
         Returns:
             self (BoxUniform): The modified BoxUniform instance.
         """
-        device = torch.device(device)
+        if not isinstance(device, torch.device):
+            device = torch.device(device)
 
         # Move tensors to the new device
         self.low = self.low.to(device=device)
