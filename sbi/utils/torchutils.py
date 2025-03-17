@@ -316,6 +316,7 @@ class BoxUniform(Independent):
             device = process_device(device)
             device = torch.device(device)
         self.device = device
+        self.reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
         self.low = torch.as_tensor(
             low, dtype=torch.float32, device=device
@@ -366,13 +367,18 @@ class BoxUniform(Independent):
         self.low = self.low.to(device=device)
         self.high = self.high.to(device=device)
 
-        # Update the base distribution with the moved tensors
-        self.base_dist = Uniform(self.low, self.high, validate_args=False)
-
         # Update the device attribute
         self.device = device
 
-        return self  # Return self to allow method chaining
+        return super().__init__(
+            Uniform(
+                low=self.low,
+                high=self.high,
+                validate_args=False,
+            ),
+            self.reinterpreted_batch_ndims,
+        )
+        
 
 
 def ensure_theta_batched(theta: Tensor) -> Tensor:
