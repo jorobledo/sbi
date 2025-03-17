@@ -314,6 +314,7 @@ class BoxUniform(Independent):
         if type(device) == str:
             device = low.device.type if device is None else device
             device = process_device(device)
+            device = torch.device(device)
         self.device = device
 
         self.low = torch.as_tensor(
