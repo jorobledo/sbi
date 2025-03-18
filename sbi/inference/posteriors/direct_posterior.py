@@ -63,6 +63,8 @@ class DirectPosterior(NeuralPosterior):
         # builds it itself. The `potential_fn` and `theta_transform` are used only for
         # obtaining the MAP.
         check_prior(prior)
+        self.enable_transform = enable_transform
+        self.x_shape = x_shape
         potential_fn, theta_transform = posterior_estimator_based_potential(
             posterior_estimator,
             prior,
@@ -98,8 +100,26 @@ class DirectPosterior(NeuralPosterior):
             self.device = device 
             self.prior.to(device)
         else:
-            raise ValueError("""Prior has no attribute to(device).""") 
-
+            raise ValueError("""Prior has no attribute to(device).""")
+        if hasattr(self.posterior_estimator, "to"):
+            self.posterior_estimator.to(device)
+        else:
+            raise ValueError("""Posterior estimator has no attribute to(device).""")
+        
+        potential_fn, theta_transform = posterior_estimator_based_potential(
+            self.posterior_estimator,
+            self.prior,
+            x_o=None,
+            enable_transform=self.enable_transform,
+        )
+        
+        return super().__init__(
+            potential_fn=potential_fn,
+            theta_transform=theta_transform,
+            device=device,
+            x_shape=self.x_shape,
+        )
+        
     def sample(
         self,
         sample_shape: Shape = torch.Size(),

@@ -79,10 +79,11 @@ class PosteriorBasedPotential(BasePotential):
         Returns:
             The potential function.
         """
-        super().__init__(prior, x_o, device)
+        self.prior = prior
+        super().__init__(self.prior, x_o, device)
         self.posterior_estimator = posterior_estimator
         self.posterior_estimator.eval()
-
+        
     def set_x(self, x_o: Optional[Tensor], x_is_iid: Optional[bool] = False):
         """
         Check the shape of the observed data and, if valid, set it.
