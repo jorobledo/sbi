@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import torch
 from torch import Tensor, log
-from torch.distributions import Distribution
+from torch.distributions import Distribution # type: ignore
 
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from sbi.inference.potentials.posterior_based_potential import (
@@ -113,7 +113,7 @@ class DirectPosterior(NeuralPosterior):
             enable_transform=self.enable_transform,
         )
         
-        return super().__init__(
+        super().__init__(
             potential_fn=potential_fn,
             theta_transform=theta_transform,
             device=device,

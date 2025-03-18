@@ -69,6 +69,18 @@ class RejectionPosterior(NeuralPosterior):
             "can evaluate the _unnormalized_ posterior density with .log_prob()."
         )
 
+    def to(self, device):
+        self.device = device
+        self.potential_fn.to(device)
+        self.proposal.to(device)
+        
+        super().__init__(
+            self.potential_fn,
+            theta_transform=self.theta_transform,
+            device=device,
+            x_shape=x_shape,
+        )
+                
     def log_prob(
         self, theta: Tensor, x: Optional[Tensor] = None, track_gradients: bool = False
     ) -> Tensor:

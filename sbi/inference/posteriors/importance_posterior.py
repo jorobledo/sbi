@@ -64,6 +64,8 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.proposal = proposal
         self._normalization_constant = None
         self.method = method
+        self.potential_fn = potential_fn
+        self.theta_transform = theta_transform
 
         self.oversampling_factor = oversampling_factor
         self.max_sampling_batch_size = max_sampling_batch_size
@@ -74,6 +76,18 @@ class ImportanceSamplingPosterior(NeuralPosterior):
             ".log_prob()."
         )
 
+    def to(self, device):
+        self.device = device
+        self.potential_fn.to(device)
+        self.proposal.to(device)
+        
+        super().__init__(
+            self.potential_fn,
+            theta_transform=self.theta_transform,
+            device=device,
+            x_shape=x_shape,
+        )
+        
     def log_prob(
         self,
         theta: Tensor,

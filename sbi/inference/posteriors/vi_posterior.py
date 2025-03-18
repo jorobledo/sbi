@@ -103,6 +103,8 @@ class VIPosterior(NeuralPosterior):
 
         # Especially the prior may be on another device -> move it...
         self._device = device
+        self.theta_transform = theta_transform
+        self.x_shape = x_shape
         self.potential_fn.device = device
         move_all_tensor_to_device(self.potential_fn, device)
 
@@ -138,6 +140,21 @@ class VIPosterior(NeuralPosterior):
             "can evaluate the _normalized_ posterior density with .log_prob()."
         )
 
+    def to(self, device):
+        self.device = device
+        self.potential_fn.to(device)
+        self._prior.to(device)
+        
+        super().__init__(self.potential_fn, self.theta_transform, device, x_shape=self.x_shape)
+        
+        self.potential_ = self._prepare_potential(self.method)
+        
+        if theta_transform is None:
+            self.link_transform = mcmc_transform(self._prior).inv
+        else:
+            self.link_transform = theta_transform.inv
+        
+        
     @property
     def q(self) -> Distribution:
         """Returns the variational posterior."""

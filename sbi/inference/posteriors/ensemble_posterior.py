@@ -60,6 +60,7 @@ class EnsemblePosterior(NeuralPosterior):
         posteriors: List,
         weights: Optional[Union[List[float], Tensor]] = None,
         theta_transform: Optional[TorchTransform] = None,
+        device: Optional[str] = None,
     ):
         r"""
         Args:
@@ -77,11 +78,21 @@ class EnsemblePosterior(NeuralPosterior):
         self.theta_transform = theta_transform
         # Take first prior as reference
         self.prior = posteriors[0].potential_fn.prior
-
-        device = self.ensure_same_device(posteriors)
-
+        self.device = device
+        
+        self._build_potential_fns()
+    
+    def to(self, device):
+        self.device = device
+        for i in range(len(self.posteriors)):
+            self.posteriors[i].to(device)
+        self.prior.to(device)
+        self._weights.to(device)
+        self._build_potential_fns()
+        
+    def _build_potential_fns(self):
         potential_fns = []
-        for posterior in posteriors:
+        for posterior in self.posteriors:
             potential = posterior.potential_fn
             potential_fns.append(potential)
             # make sure all prior are the same
@@ -89,13 +100,13 @@ class EnsemblePosterior(NeuralPosterior):
                 "All posteriors in ensemble must have the same prior: "
                 f"{potential.prior} {self.prior}"
             )
-
+            
         potential_fn = EnsemblePotential(potential_fns, self._weights, self.prior, None)
-
+        
         super().__init__(
             potential_fn=potential_fn,
-            theta_transform=theta_transform,
-            device=device,
+            theta_transform=self.theta_transform,
+            device=self.device,
         )
 
     def ensure_same_device(self, posteriors: List) -> str:
