@@ -69,6 +69,13 @@ class RatioBasedPotential(BasePotential):
         self.ratio_estimator = ratio_estimator
         self.ratio_estimator.eval()
 
+    def to(self, device):
+        self.device = device
+        self.ratio_estimator.to(device)
+        self.prior.to(device)
+        if self._x_o:
+            self._x_o = self._x_o.to(device)
+        
     def __call__(self, theta: Tensor, track_gradients: bool = True) -> Tensor:
         r"""Returns the potential for likelihood-ratio-based methods.
 

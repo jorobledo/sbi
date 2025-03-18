@@ -81,6 +81,13 @@ class LikelihoodBasedPotential(BasePotential):
         self.likelihood_estimator = likelihood_estimator
         self.likelihood_estimator.eval()
 
+    def to(self, device):
+        self.device = device
+        self.likelihood_estimator.to(device)
+        self.prior.to(device)
+        if self._x_o:
+            self._x_o = self._x_o.to(device)
+        
     def __call__(self, theta: Tensor, track_gradients: bool = True) -> Tensor:
         r"""Returns the potential $\log(p(x_o|\theta)p(\theta))$.
 

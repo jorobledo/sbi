@@ -62,7 +62,7 @@ class PosteriorBasedPotential(BasePotential):
     def __init__(
         self,
         posterior_estimator: ConditionalDensityEstimator,
-        prior: Distribution,
+        prior: Optional[Distribution] = None,
         x_o: Optional[Tensor] = None,
         device: str = "cpu",
     ):
@@ -83,7 +83,15 @@ class PosteriorBasedPotential(BasePotential):
         super().__init__(self.prior, x_o, device)
         self.posterior_estimator = posterior_estimator
         self.posterior_estimator.eval()
-        
+
+    def to(self, device):
+        self.device = device
+        self.posterior_estimator.to(device)
+        if self.prior:
+            self.prior.to(device)
+        if self._x_o:
+            self._x_o = self._x_o.to(device)
+                
     def set_x(self, x_o: Optional[Tensor], x_is_iid: Optional[bool] = False):
         """
         Check the shape of the observed data and, if valid, set it.
