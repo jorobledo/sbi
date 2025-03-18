@@ -84,6 +84,12 @@ class IIDScoreFunction(ABC):
         self.score_estimator = score_estimator.to(device).eval()
         self.prior = prior
 
+    def to(self, device):
+        self.device = device
+        self.score_estimator.to(device)
+        if self.prior:
+            self.prior.to(device)
+        
     @abstractmethod
     def __call__(
         self,
