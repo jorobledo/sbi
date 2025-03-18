@@ -8,6 +8,14 @@ import torch
 from torch import Tensor, float32
 from torch.distributions import Distribution, constraints
 
+def get_distribution_parameters(dist,device):
+    params =  {param: getattr(dist, param).to(device) for param in dist.arg_constraints.keys()}
+    if isinstance(dist,torch.distributions.MultivariateNormal):
+        params['precision_matrix'] = None
+        params['scale_tril'] = None
+    elif isinstance(dist,torch.distributions.Binomial):
+        params['logits'] = None
+    return params 
 
 class CustomPriorWrapper(Distribution):
     def __init__(
@@ -150,6 +158,10 @@ class PytorchReturnTypeWrapper(Distribution):
     def support(self):
         return self.prior.support
 
+    def to(self, device):
+        params=get_distribution_parameters(self.prior,device)
+        self.prior=type(self.prior)(**params)
+        self.device = device
 
 class MultipleIndependent(Distribution):
     """Wrap a sequence of PyTorch distributions into a joint PyTorch distribution.
@@ -314,7 +326,15 @@ class MultipleIndependent(Distribution):
             constraints.cat(supports, dim=-1, lengths=self.dims_per_dist),
             reinterpreted_batch_ndims=1,
         )
-
+        
+    def to(self, device):
+        # Move the values of the arg_constraints dictionary to the specified device
+        dists_copy=[]
+        for dist in self.dists:
+            params=get_distribution_parameters(dist,device)
+            dists_copy.append(type(dist)(**params))
+        self.dists=dists_copy
+        self.device = device
 
 def build_support(
     lower_bound: Optional[Tensor] = None, upper_bound: Optional[Tensor] = None
@@ -439,3 +459,8 @@ class OneDimPriorWrapper(Distribution):
     @property
     def variance(self) -> Tensor:
         return self.prior.variance
+    
+    def to(self, device):
+        params=get_distribution_parameters(self.prior,device)
+        self.prior=type(self.prior)(**params)
+        self.device = device
