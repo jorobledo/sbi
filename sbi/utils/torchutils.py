@@ -370,7 +370,7 @@ class BoxUniform(Independent):
         # Update the device attribute
         self.device = device
 
-        return super().__init__(
+        super().__init__(
             Uniform(
                 low=self.low,
                 high=self.high,
