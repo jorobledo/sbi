@@ -15,6 +15,7 @@ from torch.distributions import MultivariateNormal
 from sbi import utils as utils
 from sbi.inference import (
     NLE,
+    NPE,
     NPE_A,
     NPE_C,
     NRE_A,
@@ -26,6 +27,10 @@ from sbi.inference import (
 )
 from sbi.inference.posteriors.importance_posterior import ImportanceSamplingPosterior
 from sbi.inference.posteriors.mcmc_posterior import MCMCPosterior
+from sbi.inference.posteriors.direct_posterior import DirectPosterior
+from sbi.inference.posteriors.ensemble_posterior import EnsemblePosterior, EnsemblePotential
+from sbi.inference.posteriors.rejection_posterior import RejectionPosterior
+
 from sbi.inference.potentials.base_potential import BasePotential
 from sbi.inference.potentials.likelihood_based_potential import LikelihoodBasedPotential
 from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
@@ -543,6 +548,7 @@ def test_conditioned_posterior_on_gpu(device: str, mcmc_params_fast: dict):
 @pytest.mark.parametrize("potential", [LikelihoodBasedPotential,
                                         PosteriorBasedPotential,
                                         RatioBasedPotential,
+                                        EnsemblePotential,
                                         GaussCorrectedScoreFn
                                         ])
 def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotential]):
@@ -556,3 +562,26 @@ def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotentia
     assert potential_fn.device == device
     if hasattr("potential","prior"):
         assert potential_fn.prior == device
+    # if potential.__name__() == "EnsemblePotential": 
+        
+@pytest.mark.gpu
+@pytest.mark.parametrize("device",["cpu", "gpu"])   
+@pytest.mark.parametrize("sampling_method", [
+                                       "rejection",
+                                        "importance",
+                                        "mcmc",
+                                        "direct"
+                                       ])
+def test_to_method_on_posteriors(device: str, sampling_method: str):
+    device = process_device(device)  
+    prior = BoxUniform(torch.tensor([0.]), torch.tensor([1.]))
+    inference = NPE()
+    estimator = inference.append_simulations(torch.randn((100, 3)), torch.randn((100, 2))).train(max_num_epochs=1)
+    if sampling_method == "rejection":
+        posterior = inference.build_posterior(prior=prior, rejection_sampling_parameters={"proposal": prior}, sample_with=sampling_method)
+        posterior.to(device)
+        assert posterior.proposal.device == device
+    else:
+        posterior = inference.build_posterior(prior=prior, sample_with=sampling_method) 
+        posterior.to(device)
+        assert posterior.device == device
