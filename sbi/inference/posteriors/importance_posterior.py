@@ -74,6 +74,7 @@ class ImportanceSamplingPosterior(NeuralPosterior):
             "posterior and can evaluate the _unnormalized_ posterior density with "
             ".log_prob()."
         )
+        self.x_shape = x_shape
 
     def to(self, device):
         self.device = device
@@ -84,7 +85,7 @@ class ImportanceSamplingPosterior(NeuralPosterior):
             self.potential_fn,
             theta_transform=self.theta_transform,
             device=device,
-            x_shape=x_shape,
+            x_shape=self.x_shape,
         )
         
     def log_prob(

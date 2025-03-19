@@ -114,6 +114,14 @@ class CustomPotentialWrapper(BasePotential):
         super().__init__(prior, x_o, device)
 
         self.potential_fn = potential_fn
+    
+    def to(self, device):
+        self.device = device
+        if self.prior:
+            self.prior.to(device)
+        if self._x_o:
+            self._x_o = self._x_o.to(device)
+        super().__init__(self.prior, self._x_o, device)
 
     def __call__(self, theta, track_gradients: bool = True):
         """Calls the custom potential function on given theta.
