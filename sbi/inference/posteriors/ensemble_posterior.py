@@ -430,6 +430,15 @@ class EnsemblePotential(BasePotential):
         self.potential_fns = potential_fns
         super().__init__(prior, x_o, device)
 
+    def to(self, device):
+        self.device = device
+        for i in range(len(self.potential_fns)):
+            self.potential_fns[i].to(device)
+        self._weights = self._weights.to(device)
+        self.prior.to(device)
+        if self._x_o:
+            self._x_o = self._x_o.to(device)
+        
     def allow_iid_x(self) -> bool:
         # in case there is different kinds of posteriors, this will produce an error
         # in `set_x()`
