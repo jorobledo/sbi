@@ -27,6 +27,14 @@ from sbi.inference import (
 from sbi.inference.posteriors.importance_posterior import ImportanceSamplingPosterior
 from sbi.inference.posteriors.mcmc_posterior import MCMCPosterior
 from sbi.inference.potentials.base_potential import BasePotential
+from sbi.inference.potentials.likelihood_based_potential import LikelihoodBasedPotential
+from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
+from sbi.inference.potentials.ratio_based_potential import RatioBasedPotential
+from sbi.inference.potentials.score_fn_iid import (
+    BaseGaussCorrectedScoreFunction,
+    FNPEScoreFunction,
+    GaussCorrectedScoreFn,
+)
 from sbi.neural_nets.embedding_nets import FCEmbedding
 from sbi.neural_nets.factory import (
     classifier_nn,
@@ -529,3 +537,22 @@ def test_conditioned_posterior_on_gpu(device: str, mcmc_params_fast: dict):
     samples = conditional_posterior.sample((1,), x=x_o)
     conditional_posterior.potential_fn(samples)
     conditional_posterior.map()
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("device",["cpu", "gpu"])
+@pytest.mark.parametrize("potential", [LikelihoodBasedPotential,
+                                        PosteriorBasedPotential,
+                                        RatioBasedPotential,
+                                        GaussCorrectedScoreFn
+                                        ])
+def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotential]):
+    device = process_device(device)
+    estimator = torch.nn.Linear(1,1)
+    # estimator = posterior_nn("maf")
+    prior = BoxUniform(torch.tensor([1.]), torch.tensor([1.]))
+    potential_fn = potential(estimator, prior)
+    potential_fn.to(device)
+    
+    assert potential_fn.device == device
+    if hasattr("potential","prior"):
+        assert potential_fn.prior == device
