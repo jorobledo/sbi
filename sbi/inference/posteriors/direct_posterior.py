@@ -95,13 +95,15 @@ class DirectPosterior(NeuralPosterior):
         Args:
             device: device where to move the posterior to.
         """
-
+        self.device = device
         if hasattr(self.prior, "to"):
-            self.device = device
+            #self.device = device
             self.prior.to(device)
         else:
             raise ValueError("""Prior has no attribute to(device).""")
         if hasattr(self.posterior_estimator, "to"):
+            print(type(self.posterior_estimator),device, "posterior estimator has to!!!!!!!!!!")
+            self.posterior_estimator._device=device
             self.posterior_estimator.to(device)
         else:
             raise ValueError("""Posterior estimator has no attribute to(device).""")
@@ -139,10 +141,13 @@ class DirectPosterior(NeuralPosterior):
             show_progress_bars: Whether to show sampling progress monitor.
         """
         num_samples = torch.Size(sample_shape).numel()
+        print("yes 1!!!!!!")
         x = self._x_else_default_x(x)
+        print("yes 2!!!!!!")
         x = reshape_to_batch_event(
             x, event_shape=self.posterior_estimator.condition_shape
         )
+        print("yes 3!!!!!!")
         if x.shape[0] > 1:
             raise ValueError(
                 ".sample() supports only `batchsize == 1`. If you intend "
@@ -152,11 +157,15 @@ class DirectPosterior(NeuralPosterior):
                 "invariant embedding net."
             )
 
+        print("yes 4!!!!!!")
+
         max_sampling_batch_size = (
             self.max_sampling_batch_size
             if max_sampling_batch_size is None
             else max_sampling_batch_size
         )
+
+        print("yes 5!!!!!!")
 
         if sample_with is not None:
             raise ValueError(
@@ -164,6 +173,9 @@ class DirectPosterior(NeuralPosterior):
                 f"`sample_with` is no longer supported. You have to rerun "
                 f"`.build_posterior(sample_with={sample_with}).`"
             )
+
+        print("yes 6!!!!!!")
+        print(self.posterior_estimator._device, x.device," devices!!!!!!!!!")
 
         samples = rejection.accept_reject_sample(
             proposal=self.posterior_estimator.sample,

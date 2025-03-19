@@ -494,6 +494,44 @@ def test_multiround_mdn_training_on_device(method: Union[NPE_A, NPE_C], device: 
 
 
 @pytest.mark.gpu
+@pytest.mark.parametrize("method", [NPE_A])
+def test_multiround_mdn_training_interchange(method: Union[NPE_A, NPE_C]):
+    num_dim = 2
+    num_rounds = 2
+    num_simulations = 100
+    device = process_device("gpu")
+    prior = BoxUniform(-torch.ones(num_dim), torch.ones(num_dim))
+    simulator = diagonal_linear_gaussian
+
+    estimator = "mdn_snpe_a" if method == NPE_A else "mdn"
+
+    prior.to(device)
+    trainer = method(prior, density_estimator=estimator, device=device)
+
+    prior.to("cpu")
+    theta = prior.sample((num_simulations,))
+    x = simulator(theta)
+    prior.to(device)
+
+    proposal = prior
+    for _ in range(num_rounds):
+        # theta=theta.to(device)
+        # x=x.to(device)
+        trainer.append_simulations(theta, x, proposal=proposal).train(max_num_epochs=2)
+        proposal = trainer.build_posterior()#.set_default_x(torch.zeros(num_dim))
+        print(type(proposal),_,"type proposal!!!!!!")
+        proposal.to("cpu")
+        proposal.set_default_x(torch.zeros(num_dim,device="cpu"))
+        theta=theta.to("cpu")
+        x=x.to("cpu")
+        print(theta.device,proposal.device,_," iteration")
+        theta = proposal.sample((num_simulations,))
+        x = simulator(theta)
+        proposal.to(device)
+        proposal.set_default_x(torch.zeros(num_dim))
+
+
+@pytest.mark.gpu
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
 def test_conditioned_posterior_on_gpu(device: str, mcmc_params_fast: dict):
     device = process_device(device)
@@ -556,3 +594,4 @@ def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotentia
     assert potential_fn.device == device
     if hasattr("potential","prior"):
         assert potential_fn.prior == device
+
