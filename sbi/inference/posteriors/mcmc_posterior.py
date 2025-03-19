@@ -133,6 +133,7 @@ class MCMCPosterior(NeuralPosterior):
         self._posterior_sampler = None
         # Hardcode parameter name to reduce clutter kwargs.
         self.param_name = "theta"
+        self.x_shape = x_shape
 
         if init_strategy_num_candidates is not None:
             warn(
@@ -161,7 +162,7 @@ class MCMCPosterior(NeuralPosterior):
             self.potential_fn,
             theta_transform=self.theta_transform,
             device=device,
-            x_shape=x_shape,
+            x_shape=self.x_shape,
         )
 
         self.potential_ = self._prepare_potential(self.method)
