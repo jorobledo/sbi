@@ -64,7 +64,6 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.proposal = proposal
         self._normalization_constant = None
         self.method = method
-        self.potential_fn = potential_fn
         self.theta_transform = theta_transform
 
         self.oversampling_factor = oversampling_factor
