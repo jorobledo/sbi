@@ -63,8 +63,6 @@ class RejectionPosterior(NeuralPosterior):
         self.num_samples_to_find_max = num_samples_to_find_max
         self.num_iter_to_find_max = num_iter_to_find_max
         self.m = m
-        self.x_shape = x_shape
-
 
         self._purpose = (
             "It provides rejection sampling to .sample() from the posterior and "
