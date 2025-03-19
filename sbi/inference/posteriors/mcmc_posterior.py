@@ -151,21 +151,21 @@ class MCMCPosterior(NeuralPosterior):
             "It provides MCMC to .sample() from the posterior and "
             "can evaluate the _unnormalized_ posterior density with .log_prob()."
         )
-        
+
     def to(self, device):
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
-        
+
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
             device=device,
             x_shape=x_shape,
         )
-        
+
         self.potential_ = self._prepare_potential(self.method)
-        
+
     @property
     def mcmc_method(self) -> str:
         """Returns MCMC method."""

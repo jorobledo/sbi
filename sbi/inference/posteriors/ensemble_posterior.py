@@ -79,9 +79,9 @@ class EnsemblePosterior(NeuralPosterior):
         # Take first prior as reference
         self.prior = posteriors[0].potential_fn.prior
         self.device = device
-        
+
         self._build_potential_fns()
-    
+
     def to(self, device):
         self.device = device
         for i in range(len(self.posteriors)):
@@ -89,7 +89,7 @@ class EnsemblePosterior(NeuralPosterior):
         self.prior.to(device)
         self._weights.to(device)
         self._build_potential_fns()
-        
+
     def _build_potential_fns(self):
         potential_fns = []
         for posterior in self.posteriors:
@@ -100,9 +100,9 @@ class EnsemblePosterior(NeuralPosterior):
                 "All posteriors in ensemble must have the same prior: "
                 f"{potential.prior} {self.prior}"
             )
-            
+
         potential_fn = EnsemblePotential(potential_fns, self._weights, self.prior, None)
-        
+
         super().__init__(
             potential_fn=potential_fn,
             theta_transform=self.theta_transform,

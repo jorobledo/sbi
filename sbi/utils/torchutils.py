@@ -378,7 +378,7 @@ class BoxUniform(Independent):
             ),
             self.reinterpreted_batch_ndims,
         )
-        
+
 
 
 def ensure_theta_batched(theta: Tensor) -> Tensor:

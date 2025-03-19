@@ -19,7 +19,7 @@ from sbi.utils.user_input_checks_utils import (
     MultipleIndependent,
     OneDimPriorWrapper,
     PytorchReturnTypeWrapper,
-    get_distribution_parameters
+    get_distribution_parameters,
 )
 
 
@@ -127,13 +127,13 @@ def process_custom_prior(
     return prior, theta_numel, is_prior_numpy
 
 def move_prior(prior: Any, device: str):
-    
+
     if hasattr(prior,"to"):
         prior.to(device)
     elif isinstance(prior, torch.distributions.Distribution):
         params=get_distribution_parameters(prior,device)
         prior=type(prior)(**params)
-    return prior  
+    return prior
 
 def maybe_wrap_prior_as_pytorch(
     prior, custom_prior_wrapper_kwargs: Optional[Dict[str, Any]] = None

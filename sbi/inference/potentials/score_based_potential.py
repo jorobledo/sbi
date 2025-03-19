@@ -87,7 +87,7 @@ class PosteriorScoreBasedPotential(BasePotential):
             self.prior.to(device)
         if self._x_o:
             self._x_o = self._x_o.to(device)
-        
+
     def set_x(
         self,
         x_o: Optional[Tensor],

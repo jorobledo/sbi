@@ -144,17 +144,17 @@ class VIPosterior(NeuralPosterior):
         self.device = device
         self.potential_fn.to(device)
         self._prior.to(device)
-        
+
         super().__init__(self.potential_fn, self.theta_transform, device, x_shape=self.x_shape)
-        
+
         self.potential_ = self._prepare_potential(self.method)
-        
+
         if theta_transform is None:
             self.link_transform = mcmc_transform(self._prior).inv
         else:
             self.link_transform = theta_transform.inv
-        
-        
+
+
     @property
     def q(self) -> Distribution:
         """Returns the variational posterior."""

@@ -114,7 +114,7 @@ class CustomPotentialWrapper(BasePotential):
         super().__init__(prior, x_o, device)
 
         self.potential_fn = potential_fn
-    
+
     def to(self, device):
         self.device = device
         if self.prior:

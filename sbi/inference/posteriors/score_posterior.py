@@ -97,13 +97,13 @@ class ScorePosterior(NeuralPosterior):
 
     def to(self, device):
         r"""Move posterior to device,
-        
+
         Args:
             device: device where to move the posterior to.
         """
-        
+
         if hasattr(self.prior, "to"):
-            self.device = device 
+            self.device = device
             self.prior.to(device)
         else:
             raise ValueError("""Prior has no attribute to(device).""")
@@ -111,24 +111,24 @@ class ScorePosterior(NeuralPosterior):
             self.score_estimator.to(device)
         else:
             raise ValueError("""Posterior estimator has no attribute to(device).""")
-        
+
         potential_fn, theta_transform = posterior_estimator_based_potential(
             self.posterior_estimator,
             self.prior,
             x_o=None,
             enable_transform=self.enable_transform,
         )
-        
+
         super().__init__(
             potential_fn=potential_fn,
             theta_transform=theta_transform,
             device=device,
             x_shape=self.x_shape,
         )
-        
+
         self.potential_fn: PosteriorScoreBasedPotential = potential_fn
-        
-        
+
+
     def sample(
         self,
         sample_shape: Shape = torch.Size(),

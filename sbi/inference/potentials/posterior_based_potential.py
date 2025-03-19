@@ -91,7 +91,7 @@ class PosteriorBasedPotential(BasePotential):
             self.prior.to(device)
         if self._x_o:
             self._x_o = self._x_o.to(device)
-                
+
     def set_x(self, x_o: Optional[Tensor], x_is_iid: Optional[bool] = False):
         """
         Check the shape of the observed data and, if valid, set it.

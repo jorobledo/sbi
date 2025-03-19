@@ -1,7 +1,10 @@
-import torch
-from sbi.utils.torchutils import BoxUniform
 import time
+
 import pytest
+import torch
+
+from sbi.utils.torchutils import BoxUniform
+
 
 def sample_and_time(prior, device, N=100000000):
     prior.to(device)

@@ -89,7 +89,7 @@ class IIDScoreFunction(ABC):
         self.score_estimator.to(device)
         if self.prior:
             self.prior.to(device)
-        
+
     @abstractmethod
     def __call__(
         self,

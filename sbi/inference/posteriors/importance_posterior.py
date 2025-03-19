@@ -80,14 +80,14 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
-        
+
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
             device=device,
             x_shape=self.x_shape,
         )
-        
+
     def log_prob(
         self,
         theta: Tensor,
