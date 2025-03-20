@@ -168,8 +168,8 @@ class LikelihoodBasedPotential(BasePotential):
 
             return _log_likelihood_over_iid_trials_and_local_theta(
                 x=x_o.to(self.device),
-                global_theta=global_theta,
-                local_theta=local_theta,
+                global_theta=global_theta.to(self.device),
+                local_theta=local_theta.to(self.device),
                 estimator=self.likelihood_estimator,
                 track_gradients=track_gradients,
             )

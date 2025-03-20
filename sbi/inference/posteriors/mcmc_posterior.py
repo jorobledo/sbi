@@ -33,6 +33,7 @@ from sbi.samplers.mcmc import (
 )
 from sbi.sbi_types import Shape, TorchTransform
 from sbi.utils.potentialutils import pyro_potential_wrapper, transformed_potential
+from sbi.utils.sbiutils import mcmc_transform
 from sbi.utils.torchutils import ensure_theta_batched, tensor2numpy
 
 
@@ -159,6 +160,9 @@ class MCMCPosterior(NeuralPosterior):
         self.proposal.to(device)
         if hasattr(self, "_x"):
             x_o = self._x.to(device)
+
+        self.theta_transform = mcmc_transform(self.proposal, device=device)
+
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
@@ -169,6 +173,7 @@ class MCMCPosterior(NeuralPosterior):
         if hasattr(self, "_x"):
             self.set_default_x(x_o)
         self.potential_ = self._prepare_potential(self.method)
+        # self.potential_.to(device)
 
     @property
     def mcmc_method(self) -> str:

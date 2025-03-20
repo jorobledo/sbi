@@ -31,9 +31,6 @@ from sbi.inference.posteriors.ensemble_posterior import (
 )
 from sbi.inference.posteriors.importance_posterior import ImportanceSamplingPosterior
 from sbi.inference.posteriors.mcmc_posterior import MCMCPosterior
-from sbi.inference.posteriors.direct_posterior import DirectPosterior
-from sbi.inference.posteriors.ensemble_posterior import EnsemblePosterior, EnsemblePotential
-from sbi.inference.posteriors.rejection_posterior import RejectionPosterior
 from sbi.inference.potentials.base_potential import BasePotential
 from sbi.inference.potentials.likelihood_based_potential import LikelihoodBasedPotential
 from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
@@ -501,8 +498,10 @@ def test_multiround_mdn_training_on_device(method: Union[NPE_A, NPE_C], device: 
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
-@pytest.mark.parametrize("posterior_type", ['mcmc', 'direct'])
-def test_conditioned_posterior_on_gpu(device: str, posterior_type:str, mcmc_params_fast: dict):
+@pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
+def test_conditioned_posterior_on_gpu(
+    device: str, mcmc_params_fast: dict, device_inference: dict
+):
     device = process_device(device)
     num_dims = 3
 
@@ -527,40 +526,58 @@ def test_conditioned_posterior_on_gpu(device: str, posterior_type:str, mcmc_para
         low=-torch.ones(num_dims - 1, device=device),
         high=torch.ones(num_dims - 1, device=device),
     )
+    prior.to(device)
+
     prior_transform = utils.mcmc_transform(prior, device=device)
 
-    potential_fn, _ = likelihood_estimator_based_potential(estimator, proposal, x_o)
+    potential_fn, prior_transform = likelihood_estimator_based_potential(
+        estimator, proposal, x_o
+    )
     conditioned_potential_fn = potential_fn.condition_on_theta(
         condition_o, dims_global_theta=[0, 1]
     )
 
-    if posterior_type == 'mcmc':
-        conditional_posterior = MCMCPosterior(
-            potential_fn=conditioned_potential_fn,
-            theta_transform=prior_transform,
-            proposal=prior,
-            device=device,
-            **mcmc_params_fast,
-        ).set_default_x(x_o)
+    conditional_posterior = MCMCPosterior(
+        potential_fn=conditioned_potential_fn,
+        theta_transform=prior_transform,
+        proposal=prior,
+        device=device,
+        **mcmc_params_fast,
+    ).set_default_x(x_o)
 
-    # elif posterior_type == 'direct':
-    #     inference = NPE()
-    #     estimator = inference.append_simulations(torch.randn((100, num_dims-1)), torch.randn((100, num_dims))).train(max_num_epochs=1)
-    #     conditional_posterior = inference.build_posterior(prior=prior, sample_with=posterior_type)
-    #     conditional_posterior.set_default_x(x_o)
-
-
-    # for device_inference in ["cpu"]:
-    #     device_inference = process_device(device_inference)
-    #     conditional_posterior.to(device_inference)
-    #     # conditional_posterior.set_default_x(x_o)
-    #     samples = conditional_posterior.sample((1,), x=x_o)
-    #     conditional_posterior.potential_fn(samples)
-    #     conditional_posterior.map()
-
-    samples = conditional_posterior.sample((1,), x=x_o)
+    device_inference = process_device(device_inference)
+    conditional_posterior.to(device_inference)
+    print(conditional_posterior.potential_fn.device)
+    samples = conditional_posterior.sample((1,), x=x_o.to(device_inference))
     conditional_posterior.potential_fn(samples)
     conditional_posterior.map()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("device", ["cpu", "gpu"])
+@pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
+def test_direct_posterior_on_gpu(device: str, device_inference: str):
+    device = process_device(device)
+    num_dims = 3
+
+    prior = BoxUniform(
+        low=-torch.ones(num_dims, device=device),
+        high=torch.ones(num_dims, device=device),
+    )
+    x_o = torch.zeros(1, num_dims).to(device)
+
+    inference = NPE()
+    estimator = inference.append_simulations(
+        torch.randn((100, num_dims)), torch.randn((100, num_dims))
+    ).train(max_num_epochs=1)
+    posterior = inference.build_posterior(
+        density_estimator=estimator, prior=prior, sample_with="direct"
+    )
+    posterior.set_default_x(x_o)
+
+    device_inference = process_device(device_inference)
+    posterior.to(device_inference)
+    posterior.sample((1,), x=x_o.to(device_inference))
 
 
 @pytest.mark.gpu
