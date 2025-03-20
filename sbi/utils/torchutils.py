@@ -330,22 +330,6 @@ class BoxUniform(Independent):
             reinterpreted_batch_ndims,
         )
 
-    def _to(self, device: Union[str, torch.device]):
-        """
-        Moves the distribution to the specified device.
-
-        Args:
-            device (str):  Target device (e.g., "cpu", "cuda", "mps").
-        Returns:
-            New BoxUniform instance on selected device
-        """
-        if not isinstance(device, torch.device):
-            device = torch.device(device)
-        low = self.base_dist.low.to(device)
-        high = self.base_dist.high.to(device)
-
-        return BoxUniform(low, high, self.reinterpreted_batch_ndims, device)
-
     def to(self, device: Union[str, torch.device]):
         """
         Moves the distribution to the specified device **in place**.
