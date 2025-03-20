@@ -82,9 +82,11 @@ class EnsemblePosterior(NeuralPosterior):
 
         self._build_potential_fns()
 
-    def to(self, device):
-        """
-        Moves the ensemble posterior, the prior and the weights to the specified device.
+    def to(self, device: Union[str, torch.device]) -> None:
+        """Moves each posterior to device.
+
+        Prior and weights are also moved to
+        the specified device.
 
         Args:
             device: The device to move the ensemble posterior to.
@@ -438,7 +440,9 @@ class EnsemblePotential(BasePotential):
 
     def to(self, device):
         """
-        Moves the ensemble potential, the prior and the weights to the specified device.
+        Moves the ensemble potentials, the prior, the weights and x_o to
+
+        the specified device.
 
         Args:
             device: The device to move the ensemble potential to.

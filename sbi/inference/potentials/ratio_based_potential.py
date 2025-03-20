@@ -1,7 +1,7 @@
 # This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
 # under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 from torch import Tensor, nn
@@ -69,7 +69,16 @@ class RatioBasedPotential(BasePotential):
         self.ratio_estimator = ratio_estimator
         self.ratio_estimator.eval()
 
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
+        """
+        Moves ratio_estimator and prior and the x_o to the given device.
+
+        It also sets the device attribute to the given device.
+
+        Args:
+            device: Device to move the ratio_estimator, prior and x_o to.
+
+        """
         self.device = device
         self.ratio_estimator.to(device)
         self.prior.to(device)

@@ -154,7 +154,14 @@ class MCMCPosterior(NeuralPosterior):
             "can evaluate the _unnormalized_ posterior density with .log_prob()."
         )
 
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
+        """Moves potential_fn, proposal, x_o and theta_transform to the
+
+        speficied device. Reinstanciates the posterior and resets the default x_o.
+
+        Args:
+            device: Device to move the posterior to.
+        """
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)

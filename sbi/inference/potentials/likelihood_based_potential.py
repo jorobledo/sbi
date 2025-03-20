@@ -2,7 +2,7 @@
 # under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
 import warnings
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -81,7 +81,15 @@ class LikelihoodBasedPotential(BasePotential):
         self.likelihood_estimator = likelihood_estimator
         self.likelihood_estimator.eval()
 
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
+        """
+        Move likelihood_estimator, prior and x_o to the given device.
+
+        It also set the device attribute to the given device.
+
+        Args:
+            device: Device to move the likelihood_estimator, prior and x_o to.
+        """
         self.device = device
         self.likelihood_estimator.to(device)
         self.prior.to(device)

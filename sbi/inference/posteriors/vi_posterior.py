@@ -140,7 +140,15 @@ class VIPosterior(NeuralPosterior):
             "can evaluate the _normalized_ posterior density with .log_prob()."
         )
 
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
+        """
+        Move potential_fn, _prior and x_o to device, and change the device attribute.
+
+        Reinstanciates the posterior and re sets the default x.
+
+        Args:
+            device: The device to move the posterior to.
+        """
         self.device = device
         self.potential_fn.to(device)
         self._prior.to(device)

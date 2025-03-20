@@ -69,13 +69,14 @@ class RejectionPosterior(NeuralPosterior):
             "can evaluate the _unnormalized_ posterior density with .log_prob()."
         )
 
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
         """
-        Move the potential fucntion, the proposal and x_o to the device.
+        Move potential fucntion, proposal and x_o to the device.
 
-        This method reinstanciate the posterior with the new device.
+        This method reinstanciate the posterior and resets the default x_o
+
         Args:
-            device: The device to move to.
+            device: The device to move the posterior to.
         """
         self.device = device
         self.potential_fn.to(device)
