@@ -13,6 +13,7 @@ from sbi.inference.potentials.base_potential import BasePotential
 from sbi.samplers.rejection.rejection import rejection_sample
 from sbi.sbi_types import Shape, TorchTransform
 from sbi.utils.torchutils import ensure_theta_batched
+from sbi.utils.sbiutils import mcmc_transform
 
 
 class RejectionPosterior(NeuralPosterior):
@@ -75,6 +76,8 @@ class RejectionPosterior(NeuralPosterior):
         self.proposal.to(device)
         if hasattr(self, "_x"):
             x_o = self._x.to(device)
+            
+        self.theta_transform = mcmc_transform(self.proposal, device=device)
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,

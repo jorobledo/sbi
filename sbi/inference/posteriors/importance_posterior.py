@@ -12,6 +12,7 @@ from sbi.samplers.importance.importance_sampling import importance_sample
 from sbi.samplers.importance.sir import sampling_importance_resampling
 from sbi.sbi_types import Shape, TorchTransform
 from sbi.utils.torchutils import ensure_theta_batched
+from sbi.utils.sbiutils import mcmc_transform
 
 
 class ImportanceSamplingPosterior(NeuralPosterior):
@@ -82,6 +83,8 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.proposal.to(device)
         if hasattr(self, "_x"):
             x_o = self._x.to(device)
+
+        self.theta_transform = mcmc_transform(self.proposal, device=device)
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
