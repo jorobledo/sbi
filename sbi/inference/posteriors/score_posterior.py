@@ -87,6 +87,7 @@ class ScorePosterior(NeuralPosterior):
 
         self.prior = prior
         self.score_estimator = score_estimator
+        self.enable_transform = enable_transform
 
         self.sample_with = sample_with
         assert self.sample_with in [
@@ -115,7 +116,7 @@ class ScorePosterior(NeuralPosterior):
             raise ValueError("""Posterior estimator has no attribute to(device).""")
 
         potential_fn, theta_transform = posterior_estimator_based_potential(
-            self.posterior_estimator,
+            self.score_estimator,
             self.prior,
             x_o=None,
             enable_transform=self.enable_transform,
@@ -126,7 +127,6 @@ class ScorePosterior(NeuralPosterior):
             potential_fn=potential_fn,
             theta_transform=theta_transform,
             device=device,
-            x_shape=self.x_shape,
         )
         # super().__init__ erase the self._x, so we need to set it again
         if hasattr(self, "_x"):
