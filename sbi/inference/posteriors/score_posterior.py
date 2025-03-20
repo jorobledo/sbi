@@ -8,6 +8,9 @@ from torch import Tensor
 from torch.distributions import Distribution
 
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
+from sbi.inference.potentials.posterior_based_potential import (
+    posterior_estimator_based_potential,
+)
 from sbi.inference.potentials.score_based_potential import (
     CallableDifferentiablePotentialFunction,
     PosteriorScoreBasedPotential,
@@ -16,9 +19,6 @@ from sbi.inference.potentials.score_based_potential import (
 from sbi.neural_nets.estimators.score_estimator import ConditionalScoreEstimator
 from sbi.neural_nets.estimators.shape_handling import (
     reshape_to_batch_event,
-)
-from sbi.inference.potentials.posterior_based_potential import (
-    posterior_estimator_based_potential,
 )
 from sbi.samplers.rejection import rejection
 from sbi.samplers.score.correctors import Corrector
@@ -128,12 +128,11 @@ class ScorePosterior(NeuralPosterior):
             device=device,
             x_shape=self.x_shape,
         )
-        #super().__init__ erase the self._x, so we need to set it again
+        # super().__init__ erase the self._x, so we need to set it again
         if hasattr(self, "_x"):
             self.set_default_x(x_o)
 
         self.potential_fn: PosteriorScoreBasedPotential = potential_fn
-
 
     def sample(
         self,

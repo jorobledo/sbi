@@ -438,7 +438,7 @@ class EnsemblePotential(BasePotential):
         self.prior.to(device)
         if self._x_o:
             self._x_o = self._x_o.to(device)
-        
+
     def allow_iid_x(self) -> bool:
         # in case there is different kinds of posteriors, this will produce an error
         # in `set_x()`

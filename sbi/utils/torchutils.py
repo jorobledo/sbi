@@ -301,9 +301,9 @@ class BoxUniform(Independent):
         """
 
         # Type checks.
-        assert isinstance(low, Tensor) and isinstance(
-            high, Tensor
-        ), f"low and high must be tensors but are {type(low)} and {type(high)}."
+        assert isinstance(low, Tensor) and isinstance(high, Tensor), (
+            f"low and high must be tensors but are {type(low)} and {type(high)}."
+        )
         if not low.device == high.device:
             raise RuntimeError(
                 "Expected all tensors to be on the same device, but found at least"
@@ -311,19 +311,15 @@ class BoxUniform(Independent):
             )
 
         # Device handling
-        if type(device) == str:
+        if isinstance(device, str):
             device = low.device.type if device is None else device
             device = process_device(device)
             device = torch.device(device)
         self.device = device
         self.reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
-        self.low = torch.as_tensor(
-            low, dtype=torch.float32, device=device
-        )
-        self.high = torch.as_tensor(
-            high, dtype=torch.float32, device=device
-        )
+        self.low = torch.as_tensor(low, dtype=torch.float32, device=device)
+        self.high = torch.as_tensor(high, dtype=torch.float32, device=device)
 
         super().__init__(
             Uniform(
@@ -378,7 +374,6 @@ class BoxUniform(Independent):
             ),
             self.reinterpreted_batch_ndims,
         )
-
 
 
 def ensure_theta_batched(theta: Tensor) -> Tensor:

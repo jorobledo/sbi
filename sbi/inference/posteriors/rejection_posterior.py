@@ -81,7 +81,7 @@ class RejectionPosterior(NeuralPosterior):
             device=device,
             x_shape=self.x_shape,
         )
-        #super().__init__ erase the self._x, so we need to set it again
+        # super().__init__ erase the self._x, so we need to set it again
         if hasattr(self, "_x"):
             self.set_default_x(x_o)
 
