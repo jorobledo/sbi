@@ -112,7 +112,8 @@ class DirectPosterior(NeuralPosterior):
             x_o=None,
             enable_transform=self.enable_transform,
         )
-        x_o = self._x
+        if self._x:
+            x_o = self._x
         super().__init__(
             potential_fn=potential_fn,
             theta_transform=theta_transform,
@@ -120,7 +121,8 @@ class DirectPosterior(NeuralPosterior):
             x_shape=self.x_shape,
         )
         #super().__init__ erase the self._x, so we need to set it again
-        self.set_default_x(x_o)
+        if self._x:
+            self.set_default_x(x_o)
 
     def sample(
         self,
