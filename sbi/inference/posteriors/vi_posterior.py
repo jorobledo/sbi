@@ -145,7 +145,7 @@ class VIPosterior(NeuralPosterior):
         self.potential_fn.to(device)
         self._prior.to(device)
         if hasattr(self, "_x"):
-            x_o = self._x
+            x_o = self._x.to(device)
         super().__init__(self.potential_fn, 
                          self.theta_transform, 
                          device, 

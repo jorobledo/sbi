@@ -104,9 +104,8 @@ class ScorePosterior(NeuralPosterior):
         Args:
             device: device where to move the posterior to.
         """
-
+        self.device = device
         if hasattr(self.prior, "to"):
-            self.device = device
             self.prior.to(device)
         else:
             raise ValueError("""Prior has no attribute to(device).""")
@@ -122,7 +121,7 @@ class ScorePosterior(NeuralPosterior):
             enable_transform=self.enable_transform,
         )
         if hasattr(self, "_x"):
-            x_o = self._x
+            x_o = self._x.to(device)
         super().__init__(
             potential_fn=potential_fn,
             theta_transform=theta_transform,

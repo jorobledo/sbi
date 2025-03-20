@@ -74,7 +74,7 @@ class RejectionPosterior(NeuralPosterior):
         self.potential_fn.to(device)
         self.proposal.to(device)
         if hasattr(self, "_x"):
-            x_o = self._x
+            x_o = self._x.to(device)
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
