@@ -80,7 +80,8 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
-        x_o = self._x
+        if self._x:
+            x_o = self._x
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
@@ -88,7 +89,8 @@ class ImportanceSamplingPosterior(NeuralPosterior):
             x_shape=self.x_shape,
         )
         #super().__init__ erase the self._x, so we need to set it again
-        self.set_default_x(x_o)
+        if self._x:
+            self.set_default_x(x_o)
 
     def log_prob(
         self,
