@@ -89,8 +89,11 @@ class DirectPosterior(NeuralPosterior):
         self._purpose = """It samples the posterior network and rejects samples that
             lie outside of the prior bounds."""
 
-    def to(self, device):
-        r"""Move posterior to device,
+    def to(self, device: Union[str, torch.device]) -> None:
+        """Move posterior_estimator, prior and x_o to device.
+
+        Changes the device attribute, reinstanciates the
+        posterior, and resets the default x.
 
         Args:
             device: device where to move the posterior to.
