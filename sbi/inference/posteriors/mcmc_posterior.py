@@ -157,7 +157,7 @@ class MCMCPosterior(NeuralPosterior):
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
-        if self._x:
+        if hasattr(self, "_x"):
             x_o = self._x
         super().__init__(
             self.potential_fn,
@@ -166,7 +166,7 @@ class MCMCPosterior(NeuralPosterior):
             x_shape=self.x_shape,
         )
         #super().__init__ erase the self._x, so we need to set it again
-        if self._x:
+        if hasattr(self, "_x"):
             self.set_default_x(x_o)
         self.potential_ = self._prepare_potential(self.method)
 
