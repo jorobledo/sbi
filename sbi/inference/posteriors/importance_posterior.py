@@ -11,8 +11,8 @@ from sbi.inference.potentials.base_potential import BasePotential
 from sbi.samplers.importance.importance_sampling import importance_sample
 from sbi.samplers.importance.sir import sampling_importance_resampling
 from sbi.sbi_types import Shape, TorchTransform
-from sbi.utils.torchutils import ensure_theta_batched
 from sbi.utils.sbiutils import mcmc_transform
+from sbi.utils.torchutils import ensure_theta_batched
 
 
 class ImportanceSamplingPosterior(NeuralPosterior):

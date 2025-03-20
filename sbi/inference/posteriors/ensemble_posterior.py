@@ -11,11 +11,9 @@ from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from sbi.inference.potentials.base_potential import BasePotential
 from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
 from sbi.sbi_types import Shape, TorchTransform
-from sbi.utils.sbiutils import gradient_ascent
+from sbi.utils.sbiutils import gradient_ascent, mcmc_transform
 from sbi.utils.torchutils import ensure_theta_batched
 from sbi.utils.user_input_checks import process_x
-from sbi.utils.sbiutils import mcmc_transform
-
 
 
 class EnsemblePosterior(NeuralPosterior):

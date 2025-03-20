@@ -4,7 +4,6 @@ from __future__ import annotations
 
 # import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"  # Set before importing torch
-
 import sys
 from typing import Tuple, Union
 
@@ -14,7 +13,6 @@ import torch.distributions.transforms as torch_tf
 from torch import eye, ones, zeros
 from torch.distributions import MultivariateNormal
 
-import sbi
 from sbi import utils as utils
 from sbi.inference import (
     ABC,
@@ -559,10 +557,12 @@ def test_conditioned_posterior_on_gpu(
 @pytest.mark.gpu
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
 @pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
-@pytest.mark.parametrize("sampling_method", [MCMCPosterior, RejectionPosterior, ImportanceSamplingPosterior])
+@pytest.mark.parametrize(
+    "sampling_method", [MCMCPosterior, RejectionPosterior, ImportanceSamplingPosterior]
+)
 def test_prior_transform_on_gpu(device: str, device_inference: dict, sampling_method):
     """Test that the prior transform is on the correct device.
-    
+
     Args:
         device: device to train the model on.
         device_inference: device to run the inference on.
@@ -595,9 +595,7 @@ def test_prior_transform_on_gpu(device: str, device_inference: dict, sampling_me
     prior.to(device)
     prior_transform = utils.mcmc_transform(prior, device=device)
 
-    potential_fn, _ = likelihood_estimator_based_potential(
-        estimator, proposal, x_o
-    )
+    potential_fn, _ = likelihood_estimator_based_potential(estimator, proposal, x_o)
     conditioned_potential_fn = potential_fn.condition_on_theta(
         condition_o, dims_global_theta=[0, 1]
     )
@@ -620,7 +618,9 @@ def test_prior_transform_on_gpu(device: str, device_inference: dict, sampling_me
     conditional_posterior.to(device_inference)
     for trasnf in conditional_posterior.theta_transform._inv.base_transform.parts:
         # check if th
-        assert trasnf(torch.tensor([0.]).to(device_inference)).device == device_inference   
+        assert (
+            trasnf(torch.tensor([0.0]).to(device_inference)).device == device_inference
+        )
 
 
 @pytest.mark.gpu
@@ -678,7 +678,9 @@ def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotentia
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
-@pytest.mark.parametrize("sampling_method", ["rejection", "importance", "mcmc", "direct"])
+@pytest.mark.parametrize(
+    "sampling_method", ["rejection", "importance", "mcmc", "direct"]
+)
 def test_to_method_on_posteriors(device: str, sampling_method: str):
     device = process_device(device)
     prior = BoxUniform(torch.tensor([0.0]), torch.tensor([1.0]))
