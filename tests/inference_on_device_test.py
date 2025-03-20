@@ -15,7 +15,6 @@ from torch.distributions import MultivariateNormal
 from sbi import utils as utils
 from sbi.inference import (
     ABC,
-    NPE,
     NLE,
     NPE,
     NPE_A,
