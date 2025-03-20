@@ -57,14 +57,12 @@ class RejectionPosterior(NeuralPosterior):
             device=device,
             x_shape=x_shape,
         )
-
+        self.x_shape = x_shape
         self.proposal = proposal
         self.max_sampling_batch_size = max_sampling_batch_size
         self.num_samples_to_find_max = num_samples_to_find_max
         self.num_iter_to_find_max = num_iter_to_find_max
         self.m = m
-        self.x_shape = x_shape
-
 
         self._purpose = (
             "It provides rejection sampling to .sample() from the posterior and "
@@ -75,13 +73,15 @@ class RejectionPosterior(NeuralPosterior):
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
-
+        x_o = self._x
         super().__init__(
             self.potential_fn,
             theta_transform=self.theta_transform,
             device=device,
             x_shape=self.x_shape,
         )
+        #super().__init__ erase the self._x, so we need to set it again
+        self.set_default_x(x_o)
 
     def log_prob(
         self, theta: Tensor, x: Optional[Tensor] = None, track_gradients: bool = False

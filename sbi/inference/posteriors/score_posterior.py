@@ -17,6 +17,9 @@ from sbi.neural_nets.estimators.score_estimator import ConditionalScoreEstimator
 from sbi.neural_nets.estimators.shape_handling import (
     reshape_to_batch_event,
 )
+from sbi.inference.potentials.posterior_based_potential import (
+    posterior_estimator_based_potential,
+)
 from sbi.samplers.rejection import rejection
 from sbi.samplers.score.correctors import Corrector
 from sbi.samplers.score.diffuser import Diffuser
@@ -118,13 +121,15 @@ class ScorePosterior(NeuralPosterior):
             x_o=None,
             enable_transform=self.enable_transform,
         )
-
+        x_o = self._x
         super().__init__(
             potential_fn=potential_fn,
             theta_transform=theta_transform,
             device=device,
             x_shape=self.x_shape,
         )
+        #super().__init__ erase the self._x, so we need to set it again
+        self.set_default_x(x_o)
 
         self.potential_fn: PosteriorScoreBasedPotential = potential_fn
 
