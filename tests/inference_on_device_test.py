@@ -577,11 +577,11 @@ def test_to_method_on_posteriors(device: str, sampling_method: str):
     prior = BoxUniform(torch.tensor([0.]), torch.tensor([1.]))
     inference = NPE()
     estimator = inference.append_simulations(torch.randn((100, 3)), torch.randn((100, 2))).train(max_num_epochs=1)
+    x_o = torch.zeros(1, 1).to(device)
     if sampling_method == "rejection":
         posterior = inference.build_posterior(prior=prior, rejection_sampling_parameters={"proposal": prior}, sample_with=sampling_method)
-        posterior.to(device)
-        assert posterior.proposal.device == device
     else:
         posterior = inference.build_posterior(prior=prior, sample_with=sampling_method) 
-        posterior.to(device)
-        assert posterior.device == device
+    posterior.set_default_x(x_o)
+    posterior.to(device)
+    assert posterior.device == device
