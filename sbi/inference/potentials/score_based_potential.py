@@ -79,7 +79,6 @@ class PosteriorScoreBasedPotential(BasePotential):
         self.iid_params = iid_params
         super().__init__(prior, x_o, device=device)
 
-
     def to(self, device):
         self.device = device
         self.score_estimator.to(device)

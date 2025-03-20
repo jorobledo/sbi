@@ -146,20 +146,18 @@ class VIPosterior(NeuralPosterior):
         self._prior.to(device)
         if hasattr(self, "_x"):
             x_o = self._x.to(device)
-        super().__init__(self.potential_fn, 
-                         self.theta_transform, 
-                         device, 
-                         x_shape=self.x_shape)
-        #super().__init__ erase the self._x, so we need to set it again
+        super().__init__(
+            self.potential_fn, self.theta_transform, device, x_shape=self.x_shape
+        )
+        # super().__init__ erase the self._x, so we need to set it again
         if hasattr(self, "_x"):
             self.set_default_x(x_o)
         self.potential_ = self._prepare_potential(self.method)
 
-        if theta_transform is None:
+        if self.theta_transform is None:
             self.link_transform = mcmc_transform(self._prior).inv
         else:
-            self.link_transform = theta_transform.inv
-
+            self.link_transform = self.theta_transform.inv
 
     @property
     def q(self) -> Distribution:
