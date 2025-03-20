@@ -331,7 +331,13 @@ class MultipleIndependent(Distribution):
         )
 
     def to(self, device):
-        # Move the values of the arg_constraints dictionary to the specified device
+        """
+        Moves the distributions in the `dists` attribute to the specified device.
+
+        Args:
+            device: The device to which the distributions should be moved.
+        """
+
         dists_copy = []
         for dist in self.dists:
             params = get_distribution_parameters(dist, device)

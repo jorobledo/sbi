@@ -70,6 +70,13 @@ class RejectionPosterior(NeuralPosterior):
         )
 
     def to(self, device):
+        """
+        Move the potential fucntion, the proposal and x_o to the device.
+
+        This method reinstanciate the posterior with the new device.
+        Args:
+            device: The device to move to.
+        """
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)

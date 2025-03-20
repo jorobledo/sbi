@@ -83,6 +83,12 @@ class EnsemblePosterior(NeuralPosterior):
         self._build_potential_fns()
 
     def to(self, device):
+        """
+        Moves the ensemble posterior, the prior and the weights to the specified device.
+
+        Args:
+            device: The device to move the ensemble posterior to.
+        """
         self.device = device
         for i in range(len(self.posteriors)):
             self.posteriors[i].to(device)
@@ -431,6 +437,12 @@ class EnsemblePotential(BasePotential):
         super().__init__(prior, x_o, device)
 
     def to(self, device):
+        """
+        Moves the ensemble potential, the prior and the weights to the specified device.
+
+        Args:
+            device: The device to move the ensemble potential to.
+        """
         self.device = device
         for i in range(len(self.potential_fns)):
             self.potential_fns[i].to(device)

@@ -77,6 +77,14 @@ class ImportanceSamplingPosterior(NeuralPosterior):
         self.x_shape = x_shape
 
     def to(self, device):
+        """
+        Move the potential, the proposal and x_o to a new device.
+
+        It also reinstansiates the posterior with the new device.
+
+        Args:
+            device: Device on which to move the posterior to.
+        """
         self.device = device
         self.potential_fn.to(device)
         self.proposal.to(device)
