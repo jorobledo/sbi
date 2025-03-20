@@ -146,7 +146,7 @@ class VIPosterior(NeuralPosterior):
         self._prior.to(device)
         if hasattr(self, "_x"):
             x_o = self._x.to(device)
-        self.theta_transform = mcmc_transform(self.proposal, device=device)
+        self.theta_transform = mcmc_transform(self._prior, device=device)
         super().__init__(
             self.potential_fn, self.theta_transform, device, x_shape=self.x_shape
         )
