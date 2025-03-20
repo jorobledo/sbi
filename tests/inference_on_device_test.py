@@ -1,7 +1,9 @@
 # This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
 # under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
-
 from __future__ import annotations
+
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"  # Set before importing torch
 
 import sys
 from typing import Tuple, Union
@@ -31,6 +33,7 @@ from sbi.inference.posteriors.ensemble_posterior import (
 )
 from sbi.inference.posteriors.importance_posterior import ImportanceSamplingPosterior
 from sbi.inference.posteriors.mcmc_posterior import MCMCPosterior
+from sbi.inference.posteriors.rejection_posterior import RejectionPosterior
 from sbi.inference.potentials.base_potential import BasePotential
 from sbi.inference.potentials.likelihood_based_potential import LikelihoodBasedPotential
 from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
@@ -544,6 +547,72 @@ def test_conditioned_posterior_on_gpu(
         device=device,
         **mcmc_params_fast,
     ).set_default_x(x_o)
+
+    device_inference = process_device(device_inference)
+    conditional_posterior.to(device_inference)
+    print(conditional_posterior.potential_fn.device)
+    samples = conditional_posterior.sample((1,), x=x_o.to(device_inference))
+    conditional_posterior.potential_fn(samples)
+    conditional_posterior.map()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("device", ["cpu", "gpu"])
+@pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
+@pytest.mark.parametrize("sampling_method", [MCMCPosterior, RejectionPosterior, ImportanceSamplingPosterior, VIPosterior])
+def test_prior_transform_on_gpu(
+    device: str, mcmc_params_fast: dict, device_inference: dict, sampling_method
+):
+    device = process_device(device)
+    num_dims = 3
+
+    proposal = BoxUniform(
+        low=-torch.ones(num_dims, device=device),
+        high=torch.ones(num_dims, device=device),
+    )
+
+    inference = NPE_C(device=device, show_progress_bars=False)
+
+    num_simulations = 100
+    theta = proposal.sample((num_simulations,))
+    x = torch.randn_like(theta)
+    x_o = torch.zeros(1, num_dims).to(device)
+    inference = inference.append_simulations(theta, x)
+
+    estimator = inference.train(max_num_epochs=2)
+
+    # condition on one dim of theta
+    condition_o = torch.ones(1, 1).to(device)
+    prior = BoxUniform(
+        low=-torch.ones(num_dims - 1, device=device),
+        high=torch.ones(num_dims - 1, device=device),
+    )
+    prior.to(device)
+
+    prior_transform = utils.mcmc_transform(prior, device=device)
+
+    potential_fn, _ = likelihood_estimator_based_potential(
+        estimator, proposal, x_o
+    )
+    conditioned_potential_fn = potential_fn.condition_on_theta(
+        condition_o, dims_global_theta=[0, 1]
+    )
+    if sampling_method == VIPosterior:
+        conditional_posterior = sampling_method(
+                                                potential_fn=conditioned_potential_fn,
+                                                theta_transform=prior_transform,
+                                                prior=prior,
+                                                device=device,
+                                                **mcmc_params_fast,
+                                            ).set_default_x(x_o)
+    else:
+        conditional_posterior = sampling_method(
+            potential_fn=conditioned_potential_fn,
+            theta_transform=prior_transform,
+            proposal=prior,
+            device=device,
+            **mcmc_params_fast,
+        ).set_default_x(x_o)
 
     device_inference = process_device(device_inference)
     conditional_posterior.to(device_inference)
