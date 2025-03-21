@@ -558,7 +558,8 @@ def test_conditioned_posterior_on_gpu(
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
 @pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
 @pytest.mark.parametrize(
-    "sampling_method", [MCMCPosterior, RejectionPosterior, ImportanceSamplingPosterior]
+    "sampling_method",
+    [MCMCPosterior, RejectionPosterior, ImportanceSamplingPosterior, VIPosterior],
 )
 def test_prior_transform_on_gpu(device: str, device_inference: dict, sampling_method):
     """Test that the prior transform is on the correct device.
@@ -627,6 +628,12 @@ def test_prior_transform_on_gpu(device: str, device_inference: dict, sampling_me
 @pytest.mark.parametrize("device", ["cpu", "gpu"])
 @pytest.mark.parametrize("device_inference", ["cpu", "gpu"])
 def test_direct_posterior_on_gpu(device: str, device_inference: str):
+    """Test that training and sampling device can be interchanged.
+
+    Args:
+        device: device to train the model on.
+        device_inference: device to run the inference on.
+    """
     device = process_device(device)
     num_dims = 3
 
