@@ -671,16 +671,30 @@ def test_direct_posterior_on_gpu(device: str, device_inference: str):
 )
 def test_to_method_on_potentials(device: str, potential: Union[ABC, BasePotential]):
     device = process_device(device)
-    estimator = torch.nn.Linear(1, 1)
-    # estimator = posterior_nn("maf")
     prior = BoxUniform(torch.tensor([1.0]), torch.tensor([1.0]))
-    potential_fn = potential(estimator, prior)
+    inference = NPE()
+    estimator = inference.append_simulations(
+        torch.randn((100, 3)), torch.randn((100, 2))
+    ).train()
+
+    x_o = torch.tensor([0.1]).to(device)
+    if potential == EnsemblePotential:
+        potential_fn = potential(
+            [
+                RatioBasedPotential(estimator, prior),
+                PosteriorBasedPotential(estimator, prior),
+            ],
+            prior=prior,
+            x_o=x_o,
+            weights=torch.tensor([0.1, 0.9]),
+        )
+    else:
+        potential_fn = potential(estimator, prior)
     potential_fn.to(device)
 
     assert potential_fn.device == device
     if hasattr("potential", "prior"):
         assert potential_fn.prior == device
-    # if potential.__name__() == "EnsemblePotential":
 
 
 @pytest.mark.gpu
