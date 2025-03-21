@@ -11,7 +11,7 @@ from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from sbi.inference.potentials.base_potential import BasePotential
 from sbi.inference.potentials.posterior_based_potential import PosteriorBasedPotential
 from sbi.sbi_types import Shape, TorchTransform
-from sbi.utils.sbiutils import gradient_ascent
+from sbi.utils.sbiutils import gradient_ascent, mcmc_transform
 from sbi.utils.torchutils import ensure_theta_batched
 from sbi.utils.user_input_checks import process_x
 
@@ -95,6 +95,7 @@ class EnsemblePosterior(NeuralPosterior):
         for i in range(len(self.posteriors)):
             self.posteriors[i].to(device)
         self.prior.to(device)
+        self.theta_transform = mcmc_transform(self.prior, device=device)
         self._weights.to(device)
         self._build_potential_fns()
 
