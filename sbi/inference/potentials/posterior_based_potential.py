@@ -1,5 +1,6 @@
 # This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
 # under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
+
 from __future__ import annotations
 
 from typing import Optional, Tuple, Union
@@ -15,7 +16,10 @@ from sbi.neural_nets.estimators.shape_handling import (
     reshape_to_sample_batch_event,
 )
 from sbi.sbi_types import TorchTransform
-from sbi.utils.sbiutils import mcmc_transform, within_support
+from sbi.utils.sbiutils import (
+    mcmc_transform,
+    within_support,
+)
 from sbi.utils.torchutils import ensure_theta_batched
 
 

@@ -1,6 +1,9 @@
+# This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
+# under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
+
 import warnings
 from math import sqrt
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -36,7 +39,7 @@ class LRUEmbedding(nn.Module):
         mode: str = "loop",
         dropout: float = 0.0,
         apply_input_normalization: bool = False,
-        aggregate_fcn: [str, Callable] = "mean",
+        aggregate_fcn: Union[str, Callable] = "mean",
     ):
         """
         Args:

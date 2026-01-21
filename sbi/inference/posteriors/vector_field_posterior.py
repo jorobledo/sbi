@@ -1,6 +1,8 @@
 # This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
 # under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
+import math
+import warnings
 from typing import Dict, Literal, Optional, Union
 
 import torch
@@ -23,7 +25,11 @@ from sbi.samplers.score.diffuser import Diffuser
 from sbi.samplers.score.predictors import Predictor
 from sbi.sbi_types import Shape
 from sbi.utils import check_prior
-from sbi.utils.sbiutils import gradient_ascent, within_support
+from sbi.utils.sbiutils import (
+    gradient_ascent,
+    warn_if_outside_prior_support,
+    within_support,
+)
 from sbi.utils.torchutils import ensure_theta_batched
 
 
@@ -52,7 +58,7 @@ class VectorFieldPosterior(NeuralPosterior):
         max_sampling_batch_size: int = 10_000,
         device: Optional[Union[str, torch.device]] = None,
         enable_transform: bool = True,
-        sample_with: str = "sde",
+        sample_with: Literal["ode", "sde"] = "sde",
         **kwargs,
     ):
         """
@@ -149,11 +155,15 @@ class VectorFieldPosterior(NeuralPosterior):
         corrector_params: Optional[Dict] = None,
         steps: int = 500,
         ts: Optional[Tensor] = None,
-        iid_method: Literal["fnpe", "gauss", "auto_gauss", "jac_gauss"] = "auto_gauss",
+        iid_method: Optional[
+            Literal["fnpe", "gauss", "auto_gauss", "jac_gauss"]
+        ] = None,
         iid_params: Optional[Dict] = None,
         max_sampling_batch_size: int = 10_000,
         sample_with: Optional[str] = None,
         show_progress_bars: bool = True,
+        reject_outside_prior: bool = True,
+        max_sampling_time: Optional[float] = None,
     ) -> Tensor:
         r"""Return samples from posterior distribution $p(\theta|x)$.
 
@@ -191,6 +201,14 @@ class VectorFieldPosterior(NeuralPosterior):
                 use the 'sde' sampling method, the vector field estimator must support
                 it and have the SCORE_DEFINED class attribute set to True.
             show_progress_bars: Whether to show a progress bar during sampling.
+            reject_outside_prior: If True (default), rejection sampling is used to
+                ensure samples lie within the prior support. If False, samples are drawn
+                directly from the ODE/SDE sampler without rejection, which is faster but
+                may include samples outside the prior support.
+            max_sampling_time: Optional maximum allowed sampling time in seconds.
+                If exceeded, sampling is aborted and a RuntimeError is raised. Only
+                applies when `reject_outside_prior=True` (no effect otherwise since
+                direct sampling does not use rejection).
         """
 
         if sample_with is None:
@@ -200,19 +218,27 @@ class VectorFieldPosterior(NeuralPosterior):
         x = reshape_to_batch_event(x, self.vector_field_estimator.condition_shape)
         is_iid = x.shape[0] > 1
         self.potential_fn.set_x(
-            x, x_is_iid=is_iid, iid_method=iid_method, iid_params=iid_params
+            x,
+            x_is_iid=is_iid,
+            iid_method=iid_method or self.potential_fn.iid_method,
+            iid_params=iid_params,
         )
 
         num_samples = torch.Size(sample_shape).numel()
 
         if sample_with == "ode":
-            samples = rejection.accept_reject_sample(
-                proposal=self.sample_via_ode,
-                accept_reject_fn=lambda theta: within_support(self.prior, theta),
-                num_samples=num_samples,
-                show_progress_bars=show_progress_bars,
-                max_sampling_batch_size=max_sampling_batch_size,
-            )[0]
+            if reject_outside_prior:
+                samples, _ = rejection.accept_reject_sample(
+                    proposal=self.sample_via_ode,
+                    accept_reject_fn=lambda theta: within_support(self.prior, theta),
+                    num_samples=num_samples,
+                    show_progress_bars=show_progress_bars,
+                    max_sampling_batch_size=max_sampling_batch_size,
+                    max_sampling_time=max_sampling_time,
+                )
+            else:
+                # Bypass rejection sampling entirely.
+                samples = self.sample_via_ode(torch.Size([num_samples]))
         elif sample_with == "sde":
             proposal_sampling_kwargs = {
                 "predictor": predictor,
@@ -224,18 +250,29 @@ class VectorFieldPosterior(NeuralPosterior):
                 "max_sampling_batch_size": max_sampling_batch_size,
                 "show_progress_bars": show_progress_bars,
             }
-            samples = rejection.accept_reject_sample(
-                proposal=self._sample_via_diffusion,
-                accept_reject_fn=lambda theta: within_support(self.prior, theta),
-                num_samples=num_samples,
-                show_progress_bars=show_progress_bars,
-                max_sampling_batch_size=max_sampling_batch_size,
-                proposal_sampling_kwargs=proposal_sampling_kwargs,
-            )[0]
+            if reject_outside_prior:
+                samples, _ = rejection.accept_reject_sample(
+                    proposal=self._sample_via_diffusion,
+                    accept_reject_fn=lambda theta: within_support(self.prior, theta),
+                    num_samples=num_samples,
+                    show_progress_bars=show_progress_bars,
+                    max_sampling_batch_size=max_sampling_batch_size,
+                    proposal_sampling_kwargs=proposal_sampling_kwargs,
+                    max_sampling_time=max_sampling_time,
+                )
+            else:
+                # Bypass rejection sampling entirely.
+                samples = self._sample_via_diffusion(
+                    (num_samples,),
+                    **proposal_sampling_kwargs,
+                )
         else:
             raise ValueError(
                 f"Expected sample_with to be 'ode' or 'sde', but got {sample_with}."
             )
+
+        if not reject_outside_prior:
+            warn_if_outside_prior_support(self.prior, samples)
 
         samples = samples.reshape(
             sample_shape + self.vector_field_estimator.input_shape
@@ -253,6 +290,7 @@ class VectorFieldPosterior(NeuralPosterior):
         ts: Optional[Tensor] = None,
         max_sampling_batch_size: int = 10_000,
         show_progress_bars: bool = True,
+        save_intermediate: bool = False,
     ) -> Tensor:
         r"""Return samples from posterior distribution $p(\theta|x)$.
 
@@ -274,6 +312,9 @@ class VectorFieldPosterior(NeuralPosterior):
             sample_with: Deprecated - use `.build_posterior(sample_with=...)` prior to
                 `.sample()`.
             show_progress_bars: Whether to show a progress bar during sampling.
+            save_intermediate: Whether to save intermediate results of the diffusion
+                process. If True, the returned tensor has shape
+                `(*sample_shape, steps, *input_shape)`.
         """
 
         if not self.vector_field_estimator.SCORE_DEFINED:
@@ -281,13 +322,16 @@ class VectorFieldPosterior(NeuralPosterior):
                 "The vector field estimator does not support the 'sde' sampling method."
             )
 
-        num_samples = torch.Size(sample_shape).numel()
+        total_samples_needed = torch.Size(sample_shape).numel()
 
-        max_sampling_batch_size = (
+        # Determine effective batch size for sampling
+        effective_batch_size = (
             self.max_sampling_batch_size
             if max_sampling_batch_size is None
             else max_sampling_batch_size
         )
+        # Ensure we don't use larger batches than total samples needed
+        effective_batch_size = min(effective_batch_size, total_samples_needed)
 
         # TODO: the time schedule should be provided by the estimator, see issue #1437
         if ts is None:
@@ -296,6 +340,7 @@ class VectorFieldPosterior(NeuralPosterior):
             ts = torch.linspace(t_max, t_min, steps)
         ts = ts.to(self.device)
 
+        # Initialize the diffusion sampler
         diffuser = Diffuser(
             self.potential_fn,
             predictor=predictor,
@@ -303,21 +348,38 @@ class VectorFieldPosterior(NeuralPosterior):
             predictor_params=predictor_params,
             corrector_params=corrector_params,
         )
-        max_sampling_batch_size = min(max_sampling_batch_size, num_samples)
-        samples = []
-        num_iter = num_samples // max_sampling_batch_size
-        num_iter = (
-            num_iter + 1 if (num_samples % max_sampling_batch_size) != 0 else num_iter
-        )
-        for _ in range(num_iter):
-            samples.append(
-                diffuser.run(
-                    num_samples=max_sampling_batch_size,
-                    ts=ts,
-                    show_progress_bars=show_progress_bars,
-                )
+
+        # Calculate how many batches we need
+        num_batches = math.ceil(total_samples_needed / effective_batch_size)
+
+        # Generate samples in batches
+        all_samples = []
+        samples_generated = 0
+
+        for _ in range(num_batches):
+            # Calculate how many samples to generate in this batch
+            remaining_samples = total_samples_needed - samples_generated
+            current_batch_size = min(effective_batch_size, remaining_samples)
+
+            # Generate samples for this batch
+            batch_samples = diffuser.run(
+                num_samples=current_batch_size,
+                ts=ts,
+                show_progress_bars=show_progress_bars,
+                save_intermediate=save_intermediate,
             )
-        samples = torch.cat(samples, dim=0)[:num_samples]
+
+            all_samples.append(batch_samples)
+            samples_generated += current_batch_size
+
+        # Concatenate all batches and ensure we return exactly the requested number
+        samples = torch.cat(all_samples, dim=0)[:total_samples_needed]
+
+        if torch.isnan(samples).all():
+            raise RuntimeError(
+                "All samples NaN after diffusion sampling. "
+                "This may indicate numerical instability in the vector field."
+            )
 
         return samples
 
@@ -372,7 +434,10 @@ class VectorFieldPosterior(NeuralPosterior):
             `(len(θ),)`-shaped log posterior probability $\log p(\theta|x)$ for θ in the
             support of the prior, -∞ (corresponding to 0 probability) outside.
         """
-        self.potential_fn.set_x(self._x_else_default_x(x), **(ode_kwargs or {}))
+        x = self._x_else_default_x(x)
+        x = reshape_to_batch_event(x, self.vector_field_estimator.condition_shape)
+        is_iid = x.shape[0] > 1
+        self.potential_fn.set_x(x, x_is_iid=is_iid, **(ode_kwargs or {}))
 
         theta = ensure_theta_batched(torch.as_tensor(theta))
         return self.potential_fn(
@@ -392,6 +457,8 @@ class VectorFieldPosterior(NeuralPosterior):
         ts: Optional[Tensor] = None,
         max_sampling_batch_size: int = 10000,
         show_progress_bars: bool = True,
+        reject_outside_prior: bool = True,
+        max_sampling_time: Optional[float] = None,
     ) -> Tensor:
         r"""Given a batch of observations [x_1, ..., x_B] this function samples from
         posteriors $p(\theta|x_1)$, ... ,$p(\theta|x_B)$, in a batched (i.e. vectorized)
@@ -414,6 +481,13 @@ class VectorFieldPosterior(NeuralPosterior):
                 linear grid between t_max and t_min is used.
             max_sampling_batch_size: Maximum batch size for sampling.
             show_progress_bars: Whether to show sampling progress monitor.
+            reject_outside_prior: If True (default), rejection sampling is used to
+                ensure samples lie within the prior support. If False, samples are drawn
+                directly from the ODE/SDE sampler without rejection, which is faster but
+                may include samples outside the prior support.
+            max_sampling_time: Optional maximum allowed sampling time in seconds.
+                If exceeded, sampling is aborted and a RuntimeError is raised. Only
+                applies when `reject_outside_prior=True`.
 
         Returns:
             Samples from the posteriors of shape (*sample_shape, B, *input_shape)
@@ -431,15 +505,30 @@ class VectorFieldPosterior(NeuralPosterior):
             else max_sampling_batch_size
         )
 
+        # Adjust max_sampling_batch_size to avoid excessive memory usage
+        if max_sampling_batch_size * batch_size > 100_000:
+            capped = max(1, 100_000 // batch_size)
+            warnings.warn(
+                f"Capping max_sampling_batch_size from {max_sampling_batch_size} "
+                f"to {capped} to avoid excessive memory usage.",
+                stacklevel=2,
+            )
+            max_sampling_batch_size = capped
+
         if self.sample_with == "ode":
-            samples = rejection.accept_reject_sample(
-                proposal=self.sample_via_ode,
-                accept_reject_fn=lambda theta: within_support(self.prior, theta),
-                num_samples=num_samples,
-                num_xos=batch_size,
-                show_progress_bars=show_progress_bars,
-                max_sampling_batch_size=max_sampling_batch_size,
-            )[0]
+            if reject_outside_prior:
+                samples, _ = rejection.accept_reject_sample(
+                    proposal=self.sample_via_ode,
+                    accept_reject_fn=lambda theta: within_support(self.prior, theta),
+                    num_samples=num_samples,
+                    num_xos=batch_size,
+                    show_progress_bars=show_progress_bars,
+                    max_sampling_batch_size=max_sampling_batch_size,
+                    max_sampling_time=max_sampling_time,
+                )
+            else:
+                # Bypass rejection sampling.
+                samples = self.sample_via_ode(torch.Size([num_samples]))
             samples = samples.reshape(
                 sample_shape + batch_shape + self.vector_field_estimator.input_shape
             )
@@ -454,18 +543,28 @@ class VectorFieldPosterior(NeuralPosterior):
                 "max_sampling_batch_size": max_sampling_batch_size,
                 "show_progress_bars": show_progress_bars,
             }
-            samples = rejection.accept_reject_sample(
-                proposal=self._sample_via_diffusion,
-                accept_reject_fn=lambda theta: within_support(self.prior, theta),
-                num_samples=num_samples,
-                num_xos=batch_size,
-                show_progress_bars=show_progress_bars,
-                max_sampling_batch_size=max_sampling_batch_size,
-                proposal_sampling_kwargs=proposal_sampling_kwargs,
-            )[0]
+            if reject_outside_prior:
+                samples, _ = rejection.accept_reject_sample(
+                    proposal=self._sample_via_diffusion,
+                    accept_reject_fn=lambda theta: within_support(self.prior, theta),
+                    num_samples=num_samples,
+                    num_xos=batch_size,
+                    show_progress_bars=show_progress_bars,
+                    max_sampling_batch_size=max_sampling_batch_size,
+                    proposal_sampling_kwargs=proposal_sampling_kwargs,
+                    max_sampling_time=max_sampling_time,
+                )
+            else:
+                # Bypass rejection sampling.
+                samples = self._sample_via_diffusion(
+                    (num_samples,), **proposal_sampling_kwargs
+                )
             samples = samples.reshape(
                 sample_shape + batch_shape + self.vector_field_estimator.input_shape
             )
+
+        if not reject_outside_prior:
+            warn_if_outside_prior_support(self.prior, samples)
 
         return samples
 
